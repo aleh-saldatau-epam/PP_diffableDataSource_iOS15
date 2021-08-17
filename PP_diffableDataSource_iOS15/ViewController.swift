@@ -53,6 +53,7 @@ class ViewController: UIViewController {
 
     func addCollectionView() {
         let cellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, indexPath, id in
+            print("INdexPath from CellRegistration \(indexPath)")
             guard let self = self else { return }
             let link = self.links.first(where: { $0.id == id })
             guard var link = link else { return }
@@ -65,7 +66,8 @@ class ViewController: UIViewController {
             }
             else if self.prefetchingIndexPathOperations[indexPath] == nil {
                 self.prefetchingIndexPathOperations[indexPath] = self.session.dataTaskPublisher(for: URL(string: link.url)!).sink(receiveCompletion: { _ in }, receiveValue: { [weak self] (data, response) in
-                    link.image = UIImage(data: data)
+//                    link.image = UIImage(data: data)
+                    link.image = UIImage(data: data)?.preparingForDisplay()
                     self?.updateLink(at: nil, link: link)
                     self?.setLinkNeedsUpdate(id)
                 })
@@ -114,6 +116,7 @@ extension ViewController: UICollectionViewDelegate {
     func setLinkNeedsUpdate(_ id: Link.ID) {
         var snapshot = dataSource.snapshot()
         snapshot.reconfigureItems([id])
+//        snapshot.reloadItems([id])
         dataSource.apply(snapshot, animatingDifferences: true)
     }
 }
@@ -121,6 +124,7 @@ extension ViewController: UICollectionViewDelegate {
 extension ViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
 //        return
+        print("INdexPaths from prefetchItemsAt \(indexPaths)")
         for indexPath in indexPaths {
             guard prefetchingIndexPathOperations[indexPath] == nil else {
                 continue
@@ -130,11 +134,16 @@ extension ViewController: UICollectionViewDataSourcePrefetching {
                 continue
             }
 
-            prefetchingIndexPathOperations[indexPath] = session.dataTaskPublisher(for: URL(string: destinationLink.url)!).sink(receiveCompletion: { _ in }, receiveValue: { [weak self] (data, response) in
-                destinationLink.image = UIImage(data: data)
-                self?.updateLink(at: nil, link: destinationLink)
-                self?.setLinkNeedsUpdate(destinationID)
-            })
+            prefetchingIndexPathOperations[indexPath] =
+            session.dataTaskPublisher(for: URL(string: destinationLink.url)!)
+                .sink(
+                    receiveCompletion: { _ in },
+                    receiveValue: { [weak self] (data, response) in
+//                    destinationLink.image = UIImage(data: data)
+                    destinationLink.image = UIImage(data: data)?.preparingForDisplay()
+                    self?.updateLink(at: nil, link: destinationLink)
+                    self?.setLinkNeedsUpdate(destinationID)
+                })
         }
     }
 
